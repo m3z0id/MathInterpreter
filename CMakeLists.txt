@@ -10,4 +10,6 @@ add_executable(MathInterpreter
     MathEval.c
     CustomMath.h)
 
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+
 target_link_libraries(MathInterpreter m)

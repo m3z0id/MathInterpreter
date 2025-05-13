@@ -1,3 +1,5 @@
 cmake-build-*/
 .vscode/
 .idea/
+mathGen.py
+math.ma

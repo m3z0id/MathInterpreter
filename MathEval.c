@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         Token* tokens = tokenize(buf[i], &len);
 
         validate(tokens, &len);
-        fprintf(stdout, "The result is probably %g\n", calculate(tokens, &len).val);
+        fprintf(stdout, "%d. The result is probably %g\n", i+1, calculate(tokens, &len).val);
     }
 
     free(buf);
