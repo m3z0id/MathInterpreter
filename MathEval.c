@@ -7,7 +7,27 @@
 
 int BUF_LEN = 1024;
 
-char* getInput() {
+void printError(char* err, char* input) {
+    free(input);
+    fprintf(stdout, "%s", err);
+    exit(1);
+}
+
+char** splitUp(char* str, int* len, char* delim) {
+    char** rawTokens = malloc(sizeof(char*) * BUF_LEN);
+
+    *len = 0;
+    char *token = strtok(str, delim);
+    while (token != NULL) {
+        rawTokens[*len] = strdup(token); 
+        (*len)++;
+        token = strtok(NULL, delim);
+    }
+
+    return rawTokens;
+}
+
+char** getInput() {
     char* buf = malloc(sizeof(char) * (BUF_LEN + 1));
     fprintf(stdout, "Enter a math expression: ");
     fgets(buf, sizeof(char) * BUF_LEN, stdin);
@@ -15,32 +35,39 @@ char* getInput() {
     buf[strcspn(buf, "\n")] = 0;
 
     buf = realloc(buf, sizeof(char) * (strlen(buf) + 1));
-    return buf;
+    char** wrapper = malloc(sizeof(char*));
+    wrapper[0] = buf;
+    return wrapper;
 }
 
-void printError(char* err, char* input) {
-    free(input);
-    fprintf(stdout, "%s", err);
-    exit(1);
-}
-
-char** splitUp(char* str, int* len) {
-    char** rawTokens = malloc(sizeof(char*) * BUF_LEN);
-
-    *len = 0;
-    char *token = strtok(str, " ");
-    while (token != NULL) {
-        rawTokens[*len] = strdup(token); 
-        (*len)++;
-        token = strtok(NULL, " ");
+char** getFileInput(char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Could not open file %s\n", filename);
+        exit(1);
     }
 
-    return rawTokens;
+    fseek(file, 0, SEEK_END);
+    int fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* buf = malloc(sizeof(char) * (fileSize + 1));
+    if (!buf) {
+        fprintf(stderr, "Memory allocation failed\n");
+        fclose(file);
+        exit(1);
+    }
+
+    fread(buf, sizeof(char), fileSize, file);
+    buf[fileSize] = 0;
+    fclose(file);
+
+    return splitUp(buf, &fileSize, "\n");
 }
 
 Token* tokenize(char* input, int* len) {
     *len = 0;
-    char** rawTokens = splitUp(input, len);
+    char** rawTokens = splitUp(input, len, " ");
     Token* tokenArr = malloc(*len * sizeof(Token));
 
     for(int i = 0; i < *len; i++) {
@@ -110,16 +137,28 @@ void validate(Token* tokenArr, int* len) {
     }
 }
 
-int main() {
-    char* buf = getInput();
-    int len = 0;
-    Token* tokens = tokenize(buf, &len);
+int main(int argc, char* argv[]) {
+    if (!(argc == 1 || argc == 3)) {
+        fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
+        return 1;
+    }
+    char** buf;
+    if (argc == 3 && strcmp(argv[1], "-i") == 0) {
+        buf = getFileInput(argv[2]);
+    } else if (argc == 1) {
+        buf = getInput();
+    } else {
+        fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
+        return 1;
+    }
 
-    validate(tokens, &len);
+    for (int i = 0; i < getStrArrLen(buf); i++) {
+        int len = 0;
+        Token* tokens = tokenize(buf[i], &len);
 
-    //printTokenArray(tokens, len);
-
-    fprintf(stdout, "The result is probably %g", calculate(tokens, &len).val);
+        validate(tokens, &len);
+        fprintf(stdout, "The result is probably %g\n", calculate(tokens, &len).val);
+    }
 
     free(buf);
 }

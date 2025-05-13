@@ -122,3 +122,10 @@ int getEntriesNumber(Token* arr, int size) {
     return count;
 }
 
+int getStrArrLen(char** arr) {
+    int count = 0;
+    while (arr[count] != NULL) {
+        count++;
+    }
+    return count;
+}
