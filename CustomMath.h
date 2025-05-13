@@ -20,21 +20,10 @@ Token* getDeepestLParen(Token* start, Token* end) {
 }
 
 Token* getDeepestRParen(Token* start, Token* end) {
-    Token* result = NULL;
-    int depth = 0;
-    int maxDepth = 0;
-    for (Token* iter = end; iter >= start; iter--) {
-        if (iter->type == RPAREN) {
-            depth++;
-            if (maxDepth < depth) {
-                maxDepth = depth;
-                result = iter;
-            }
-        } else if (iter->type == LPAREN) {
-            depth--;
-        }
+    for (Token* iter = start; iter <= end; iter++) {
+        if (iter->type == RPAREN) return iter;
     }
-    return result;
+    return NULL;
 }
 
 Token* getBiggestPriority(Token* start, Token* end) {
@@ -51,49 +40,30 @@ Token* getBiggestPriority(Token* start, Token* end) {
 }
 
 void cleanup(Token** arr, int* len) {
-    int reduceBy = 0;
-    for (int i = 0; i <= *len; i++) {
-        if ((*arr)[i].type == 0) {
-            reduceBy++;
-            for (int j = i; j < *len - 1; j++) {
-                (*arr)[j] = (*arr)[j + 1];
-            }
+    int writeIndex = 0;
+
+    for (int i = 0; i < *len; i++) {
+        if ((*arr)[i].type != 0) {
+            (*arr)[writeIndex++] = (*arr)[i];
         }
     }
-    printTokenArray(*arr, (*len - reduceBy));
-    *arr = realloc(*arr, (*len - reduceBy) * sizeof(Token));
+
+    Token* newArr = realloc(*arr, writeIndex * sizeof(Token));
+    if (!newArr) {
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
+    }
+    *len = writeIndex;
+    *arr = newArr;
 }
 
-void calculatePart(Token* start, Token* end) {
-    if (start->type == LPAREN && end->type == RPAREN) {
-        *start = initToken(0);
-        *end = initToken(0);
-    }
+void calculatePart(Token* arr, int* fulllen, Token* start, Token* end) {
     Token* biggestPriority = NULL;
     while ((biggestPriority = getBiggestPriority(start, end)) != NULL) {
         Token result = initToken(NUMBER);
 
-        Token* val1 = NULL;
-        Token* val2 = NULL;
-
-        for (Token* iter = biggestPriority; iter >= start; iter--) {
-            if (iter->type == NUMBER) {
-                val1 = iter;
-                break;
-            }
-        }
-
-        for (Token* iter = biggestPriority; iter <= end; iter++) {
-            if (iter->type == NUMBER) {
-                val2 = iter;
-                break;
-            }
-        }
-
-        if (val1 == NULL || val2 == NULL) {
-            fprintf(stderr, "Idk what happened\n");
-            exit(1);
-        }
+        Token* val1 = biggestPriority - 1;
+        Token* val2 = biggestPriority + 1;
 
         if (biggestPriority->type == ADD) result.val = val1->val + val2->val;
         else if (biggestPriority->type == SUBTRACT) result.val = val1->val - val2->val;
@@ -111,24 +81,23 @@ void calculatePart(Token* start, Token* end) {
         *biggestPriority = result;
         *val1 = initToken(0);
         *val2 = initToken(0);
+
+        cleanup(&arr, fulllen);
+        end -= 2;
     }
 }
 
 Token calculate(Token* arr, int* len) {
     Token* deepestLParen = NULL;
     while ((deepestLParen = getDeepestLParen(arr, arr+*len)) != NULL) {
-        Token* deepestRParen = getDeepestRParen(arr, arr+*len);
-        calculatePart(deepestLParen, deepestRParen);
+        Token* deepestRParen = getDeepestRParen(deepestLParen, arr+*len);
+        *deepestLParen = initToken(0);
+        *deepestRParen = initToken(0);
+        cleanup(&arr, len);
+        calculatePart(arr, len, deepestLParen, deepestRParen-2);
     }
-    while (getEntriesNumber(arr, *len) > 1) {
-        calculatePart(arr, arr+*len);
-    }
-    for (Token* iter = arr; iter < arr + *len; iter++) {
-        if (iter->type == NUMBER) {
-            Token result = *iter;
-            free(arr);
-            return result;
-        }
+    while (*len > 1) {
+        calculatePart(arr, len, arr, arr+*len);
     }
     return *arr;
 }
