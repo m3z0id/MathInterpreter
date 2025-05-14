@@ -110,7 +110,7 @@ void validate(Token* tokenArr, int* len) {
     }
 
     int danglingParenCount = 0;
-    if ((tokenArr[0].type == SUBTRACT || tokenArr[0].type == ADD) && tokenArr[1].type == LPAREN) {
+    if ((tokenArr[0].type == SUBTRACT || tokenArr[0].type == ADD) && (tokenArr[1].type == LPAREN || tokenArr[1].type == NUMBER)) {
         insertAt(&tokenArr, len, initToken(NUMBER), 0);
     } else if (!(tokenArr[0].type == NUMBER || tokenArr[0].type == LPAREN)) {
         fprintf(stderr, "Expression can't start with an operator!\n");
@@ -143,7 +143,7 @@ void validate(Token* tokenArr, int* len) {
                 exit(1);
             }
             if (tokenArr[i].type >= ADD && tokenArr[i].type <= FACTOR) {
-                if (tokenArr[i-1].type >= ADD && tokenArr[i-1].type <= LPAREN) {
+                if (tokenArr[i-1].type >= ADD && tokenArr[i-1].type <= LPAREN && tokenArr[i].type != SUBTRACT) {
                     fprintf(stderr, "Invalid token at %d, there can't be double operands.\n", i);
                     exit(1);
                 }

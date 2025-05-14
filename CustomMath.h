@@ -82,8 +82,14 @@ void calculatePart(Token* arr, int* fullLen, Token* start, Token* end) {
             }
             result.val = val1->val / val2->val;
         }
+        else if (biggestPriority->type == MOD) {
+            if (val2->val <= 0) {
+                fprintf(stderr, "Modulus by zero or negative number\n");
+                exit(1);
+            }
+            result.val = fmod(val1->val, val2->val);
+        }
         else if (biggestPriority->type == FACTOR) result.val = pow(val1->val, val2->val);
-        else if (biggestPriority->type == MOD) result.val = fmod(val1->val, val2->val);
         else if (biggestPriority->type == ROOT) result.val = nthRoot(val2->val, val1->val);
 
         *biggestPriority = result;
