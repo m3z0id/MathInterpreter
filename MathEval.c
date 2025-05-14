@@ -6,8 +6,6 @@
 #include "DataTypes.h"
 #include "CustomMath.h"
 
-int BUF_LEN = 1024;
-
 void printError(char* err, char* input) {
     free(input);
     fprintf(stdout, "%s", err);
@@ -38,19 +36,27 @@ void freeStrArr(char **arr, int len) {
 }
 
 char* getInput() {
-    char* buf = calloc(BUF_LEN + 1, sizeof(char));
     fprintf(stdout, "Enter a math expression: ");
-    fgets(buf, sizeof(char) * BUF_LEN, stdin);
-    buf[BUF_LEN] = 0;
+
+    char* buf = NULL;
+    int len = 0;
+
+    int c;
+    while ((c = getchar()) != '\n' && c != '\r' && c != EOF) {
+        char* temp = realloc(buf, len + 2);
+        if (!temp) {
+            fprintf(stderr, "Out of memory\n");
+            free(buf);
+            exit(1);
+        }
+        buf = temp;
+        buf[len++] = (char)c;
+        buf[len] = 0;
+    }
+
+    buf[strcspn(buf, "\r")] = 0;
     buf[strcspn(buf, "\n")] = 0;
 
-    char* temp = realloc(buf, sizeof(char) * (strlen(buf) + 1));
-    if (!temp) {
-        fprintf(stderr, "Out of memory\n");
-        free(buf);
-        exit(1);
-    }
-    buf = temp;
     return buf;
 }
 
@@ -79,16 +85,16 @@ char* readNextLine(FILE* file) {
     if (origLocation == ftell(file)) return NULL;
     fseek(file, origLocation, SEEK_SET);
 
-    BUF_LEN = nlLocation - origLocation;
-    char* buf = calloc(BUF_LEN + 1, sizeof(char));
+    long lineLen = nlLocation - origLocation;
+    char* buf = calloc(lineLen + 1, sizeof(char));
     if (!buf) {
         fprintf(stderr, "Out of memory\n");
         fclose(file);
         exit(1);
     }
 
-    fread(buf, sizeof(char), BUF_LEN, file);
-    buf[BUF_LEN] = 0;
+    fread(buf, sizeof(char), lineLen, file);
+    buf[lineLen] = 0;
     buf[strcspn(buf, "\n")] = 0;
 
     return buf;
