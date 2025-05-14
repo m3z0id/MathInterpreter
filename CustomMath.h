@@ -43,21 +43,28 @@ void cleanup(Token** arr, int* len) {
     int writeIndex = 0;
 
     for (int i = 0; i < *len; i++) {
-        if ((*arr)[i].type != 0) {
+        if ((*arr)[i].type >= ADD && (*arr)[i].type <= NUMBER) {
             (*arr)[writeIndex++] = (*arr)[i];
         }
     }
 
     Token* newArr = realloc(*arr, writeIndex * sizeof(Token));
-    if (!newArr) {
+    if (!newArr && writeIndex > 0) {
         fprintf(stderr, "Out of memory\n");
+        free(*arr);
         exit(1);
     }
+    if (newArr) {
+        *arr = newArr;
+    }
     *len = writeIndex;
-    *arr = newArr;
 }
 
-void calculatePart(Token* arr, int* fulllen, Token* start, Token* end) {
+double nthRoot(double x, double n) {
+    return pow(x, 1.0 / n);
+}
+
+void calculatePart(Token* arr, int* fullLen, Token* start, Token* end) {
     Token* biggestPriority = NULL;
     while ((biggestPriority = getBiggestPriority(start, end)) != NULL) {
         Token result = initToken(NUMBER);
@@ -77,12 +84,13 @@ void calculatePart(Token* arr, int* fulllen, Token* start, Token* end) {
         }
         else if (biggestPriority->type == FACTOR) result.val = pow(val1->val, val2->val);
         else if (biggestPriority->type == MOD) result.val = fmod(val1->val, val2->val);
+        else if (biggestPriority->type == ROOT) result.val = nthRoot(val2->val, val1->val);
 
         *biggestPriority = result;
         *val1 = initToken(0);
         *val2 = initToken(0);
 
-        cleanup(&arr, fulllen);
+        cleanup(&arr, fullLen);
         end -= 2;
     }
 }

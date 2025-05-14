@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
 #include "DataTypes.h"
 #include "CustomMath.h"
 
@@ -14,7 +15,8 @@ void printError(char* err, char* input) {
 }
 
 char** splitUp(char* str, int* len, char* delim) {
-    char** rawTokens = malloc(sizeof(char*) * BUF_LEN);
+    int words = getSpaceCount(str, strlen(str)) + 1;
+    char** rawTokens = calloc(words, sizeof(char*));
 
     *len = 0;
     char *token = strtok(str, delim);
@@ -27,14 +29,28 @@ char** splitUp(char* str, int* len, char* delim) {
     return rawTokens;
 }
 
+void freeStrArr(char **arr, int len) {
+    if (!arr) return;
+    for (int i = 0; i < len; i++) {
+        free(arr[i]);
+    }
+    free(arr);
+}
+
 char** getInput() {
-    char* buf = malloc(sizeof(char) * (BUF_LEN + 1));
+    char* buf = calloc(BUF_LEN + 1, sizeof(char));
     fprintf(stdout, "Enter a math expression: ");
     fgets(buf, sizeof(char) * BUF_LEN, stdin);
     buf[BUF_LEN] = 0;
     buf[strcspn(buf, "\n")] = 0;
 
-    buf = realloc(buf, sizeof(char) * (strlen(buf) + 1));
+    char* temp = realloc(buf, sizeof(char) * (strlen(buf) + 1));
+    if (!temp) {
+        fprintf(stderr, "Out of memory\n");
+        free(buf);
+        exit(1);
+    }
+    buf = temp;
     char** wrapper = malloc(sizeof(char*));
     wrapper[0] = buf;
     return wrapper;
@@ -48,41 +64,55 @@ char** getFileInput(char* filename) {
     }
 
     fseek(file, 0, SEEK_END);
-    int fileSize = ftell(file);
+    BUF_LEN = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char* buf = malloc(sizeof(char) * (fileSize + 1));
+    char* buf = calloc(BUF_LEN + 1, sizeof(char));
     if (!buf) {
         fprintf(stderr, "Memory allocation failed\n");
         fclose(file);
         exit(1);
     }
 
-    fread(buf, sizeof(char), fileSize, file);
-    buf[fileSize] = 0;
+    fread(buf, sizeof(char), BUF_LEN, file);
+    buf[BUF_LEN] = 0;
     fclose(file);
 
-    return splitUp(buf, &fileSize, "\n");
+    int lines = 0;
+    char** result = splitUp(buf, &lines, "\n");
+    free(buf);
+    return result;
 }
 
 Token* tokenize(char* input, int* len) {
     *len = 0;
     char** rawTokens = splitUp(input, len, " ");
-    Token* tokenArr = malloc(*len * sizeof(Token));
+    Token* tokenArr = calloc(*len, sizeof(Token));
 
     for(int i = 0; i < *len; i++) {
         Token token = tokenFromString(rawTokens[i]);
         tokenArr[i] = token;
     }
 
+    for (int i = 0; i < *len; i++) {
+        free(rawTokens[i]);
+    }
     free(rawTokens);
 
     return tokenArr;
 }
 
 void validate(Token* tokenArr, int* len) {
+    if (tokenArr == NULL) {
+        free(tokenArr);
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
+    }
+
     int danglingParenCount = 0;
-    if (!(tokenArr[0].type == NUMBER || tokenArr[0].type == LPAREN)) {
+    if ((tokenArr[0].type == SUBTRACT || tokenArr[0].type == ADD) && tokenArr[1].type == LPAREN) {
+        insertAt(&tokenArr, len, initToken(NUMBER), 0);
+    } else if (!(tokenArr[0].type == NUMBER || tokenArr[0].type == LPAREN)) {
         fprintf(stderr, "Expression can't start with an operator!\n");
         exit(1);
     }
@@ -120,13 +150,13 @@ void validate(Token* tokenArr, int* len) {
             }
 
             if (tokenArr[i].type == LPAREN && (tokenArr[i-1].type == RPAREN || tokenArr[i-1].type == NUMBER)) {
-                insertAt(tokenArr, len, initToken(MULTIPLY), i);
+                insertAt(&tokenArr, len, initToken(MULTIPLY), i);
                 i++;
             } else if (tokenArr[i].type == RPAREN && tokenArr[i-1].type == LPAREN) {
-                insertAt(tokenArr, len, initToken(MULTIPLY), i);
+                insertAt(&tokenArr, len, initToken(MULTIPLY), i);
                 i++;
             } else if (tokenArr[i].type == NUMBER && tokenArr[i-1].type == RPAREN) {
-                insertAt(tokenArr, len, initToken(MULTIPLY), i);
+                insertAt(&tokenArr, len, initToken(MULTIPLY), i);
                 i++;
             }
         }
@@ -137,28 +167,51 @@ void validate(Token* tokenArr, int* len) {
     }
 }
 
+void handleExit(int sig) {
+    fprintf(stderr, "\nExiting...\n");
+    exit(0);
+}
+
 int main(int argc, char* argv[]) {
     if (!(argc == 1 || argc == 3)) {
         fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
         return 1;
     }
     char** buf;
+    int isStdin = false;
+    signal(SIGINT, handleExit);
+
+input:
     if (argc == 3 && strcmp(argv[1], "-i") == 0) {
         buf = getFileInput(argv[2]);
     } else if (argc == 1) {
+        isStdin = true;
         buf = getInput();
     } else {
         fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
         return 1;
     }
 
-    for (int i = 0; i < getStrArrLen(buf); i++) {
+    int bufLen = getStrArrLen(buf);
+    for (int i = 0; i < bufLen; i++) {
         int len = 0;
-        Token* tokens = tokenize(buf[i], &len);
+        Token *tokens = tokenize(buf[i], &len);
 
         validate(tokens, &len);
         fprintf(stdout, "%d. The result is probably %g\n", i+1, calculate(tokens, &len).val);
+
+        if (isStdin) {
+            free(buf);
+            goto input;
+        }
+
+        free(tokens);
     }
 
-    free(buf);
+    if (!isStdin) {
+        freeStrArr(buf, bufLen);
+    } else {
+        free(buf);
+    }
+    return 0;
 }
