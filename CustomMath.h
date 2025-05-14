@@ -49,14 +49,12 @@ void cleanup(Token** arr, int* len) {
     }
 
     Token* newArr = realloc(*arr, writeIndex * sizeof(Token));
-    if (!newArr && writeIndex > 0) {
+    if (!newArr) {
         fprintf(stderr, "Out of memory\n");
         free(*arr);
         exit(1);
     }
-    if (newArr) {
-        *arr = newArr;
-    }
+    *arr = newArr;
     *len = writeIndex;
 }
 
@@ -113,5 +111,7 @@ Token calculate(Token* arr, int* len) {
     while (*len > 1) {
         calculatePart(arr, len, arr, arr+*len);
     }
-    return *arr;
+    Token result = *arr;
+    free(arr);
+    return result;
 }

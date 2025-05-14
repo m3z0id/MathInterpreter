@@ -37,7 +37,7 @@ void freeStrArr(char **arr, int len) {
     free(arr);
 }
 
-char** getInput() {
+char* getInput() {
     char* buf = calloc(BUF_LEN + 1, sizeof(char));
     fprintf(stdout, "Enter a math expression: ");
     fgets(buf, sizeof(char) * BUF_LEN, stdin);
@@ -51,37 +51,56 @@ char** getInput() {
         exit(1);
     }
     buf = temp;
-    char** wrapper = malloc(sizeof(char*));
-    wrapper[0] = buf;
-    return wrapper;
+    return buf;
 }
 
-char** getFileInput(char* filename) {
-    FILE* file = fopen(filename, "r");
+long goToNextNl(FILE *file) {
+    char c;
+    while ((c = fgetc(file)) != EOF) {
+        if (c == '\n') {
+            return ftell(file);
+        }
+    }
+    fseek(file, 0, SEEK_END);
+    return ftell(file);
+}
+
+char* readNextLine(FILE* file) {
     if (!file) {
-        fprintf(stderr, "Could not open file %s\n", filename);
+        fprintf(stderr, "This file doesn't exist\n");
+        fclose(file);
         exit(1);
     }
 
-    fseek(file, 0, SEEK_END);
-    BUF_LEN = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    long origLocation = ftell(file);
+    long nlLocation = goToNextNl(file);
 
+    fseek(file, 0, SEEK_END);
+    if (origLocation == ftell(file)) return NULL;
+    fseek(file, origLocation, SEEK_SET);
+
+    BUF_LEN = nlLocation - origLocation;
     char* buf = calloc(BUF_LEN + 1, sizeof(char));
     if (!buf) {
-        fprintf(stderr, "Memory allocation failed\n");
+        fprintf(stderr, "Out of memory\n");
         fclose(file);
         exit(1);
     }
 
     fread(buf, sizeof(char), BUF_LEN, file);
     buf[BUF_LEN] = 0;
-    fclose(file);
+    buf[strcspn(buf, "\n")] = 0;
 
-    int lines = 0;
-    char** result = splitUp(buf, &lines, "\n");
-    free(buf);
-    return result;
+    return buf;
+}
+
+FILE* openFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "File not found\n");
+        exit(1);
+    }
+    return file;
 }
 
 Token* tokenize(char* input, int* len) {
@@ -177,13 +196,16 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
         return 1;
     }
-    char** buf;
+    char* buf;
     int isStdin = false;
     signal(SIGINT, handleExit);
 
 input:
+    FILE* file = NULL;
     if (argc == 3 && strcmp(argv[1], "-i") == 0) {
-        buf = getFileInput(argv[2]);
+        file = openFile(argv[2]);
+        buf = readNextLine(file);
+
     } else if (argc == 1) {
         isStdin = true;
         buf = getInput();
@@ -192,26 +214,24 @@ input:
         return 1;
     }
 
-    int bufLen = getStrArrLen(buf);
-    for (int i = 0; i < bufLen; i++) {
+    int counter = 0;
+    while (buf != NULL) {
+        counter++;
         int len = 0;
-        Token *tokens = tokenize(buf[i], &len);
+        Token* tokenArr = tokenize(buf, &len);
+        free(buf);
 
-        validate(tokens, &len);
-        fprintf(stdout, "%d. The result is probably %g\n", i+1, calculate(tokens, &len).val);
+        validate(tokenArr, &len);
+        fprintf(stdout, "%d: The result is %g\n", counter, calculate(tokenArr, &len).val);
 
         if (isStdin) {
-            free(buf);
-            goto input;
+            buf = getInput();
+        } else {
+            buf = readNextLine(file);
         }
-
-        free(tokens);
     }
 
-    if (!isStdin) {
-        freeStrArr(buf, bufLen);
-    } else {
-        free(buf);
-    }
+    fclose(file);
+
     return 0;
 }
