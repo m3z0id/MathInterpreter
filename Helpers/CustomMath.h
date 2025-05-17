@@ -1,3 +1,4 @@
+#pragma once
 #include "DataTypes.h"
 #include <math.h>
 

@@ -1,7 +1,6 @@
 #pragma once
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 int isDelim(const char c) {
     return c == ' ';
