@@ -6,9 +6,12 @@ set(CMAKE_C_STANDARD 11)
 include_directories(.)
 
 add_executable(MathInterpreter
-    DataTypes.h
+        Helpers/DataTypes.h
     MathEval.c
-    CustomMath.h)
+        Helpers/CustomMath.h
+        Lexer.h
+        Input.h
+        Helpers/AdditionalString.h)
 
 set(CMAKE_C_FLAGS_RELEASE "-O3 -flto -march=native -ffast-math")
 

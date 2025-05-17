@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "Helpers/AdditionalString.h"
 #define true 1
 #define false 0
 
@@ -18,12 +19,6 @@ enum TokenType {
     NUMBER = 10
 };
 
-int isDelim(const char c) {
-    return c == ' ';
-}
-int isDecimal(const char c) {
-    return c == '.' || c == ',';
-}
 int isNumber(const char* str) {
     char* iter = str;
     int seenDelim = false;
@@ -92,16 +87,6 @@ Token initToken(enum TokenType type) {
     return token;
 }
 
-Token tokenFromString(char* str) {
-    enum TokenType type = getType(str);
-    Token token = initToken(type);
-
-    if(type != NUMBER) return token;
-    char* endptr;
-    token.val = strtod(str, &endptr);
-    return token;
-}
-
 void insertAt(Token** arr, int* size, Token value, int index) {
     *arr = realloc(*arr, (*size + 1) * sizeof(Token));
     if (!*arr) {
@@ -126,22 +111,4 @@ int getEntriesNumber(Token* arr, int size) {
         if (iter->type >= ADD && iter->type <= NUMBER) count++;
     }
     return count;
-}
-
-int getStrArrLen(char** arr) {
-    int count = 0;
-    while (arr[count] != NULL) {
-        count++;
-    }
-    return count;
-}
-
-int getSpaceCount(char* str, int len) {
-    int counter = 0;
-    for (int i = 0; i < len; i++) {
-        if (isDelim(str[i])) {
-            counter++;
-        }
-    }
-    return counter;
 }
