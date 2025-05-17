@@ -32,11 +32,10 @@ Token* tokenize(char* input, int* tokArrLen) {
         if (currentChar == '(' || currentChar == ')' || currentChar == '+' || currentChar == '-' || currentChar == '*' || currentChar == '/' || currentChar == '%' || currentChar == '^') {
             arr = oneCharToken(arr, tokArrLen, currentChar);
         } else if (isdigit(currentChar)) {
-            char* number = calloc(2, sizeof(char));
+            int len = 1;
+            char* number = calloc(len, sizeof(char));
             number[0] = currentChar;
-            int len = 0;
 
-            int found = false;
             int foundDecimal = false;
             while (isdigit(currentChar = *input++) || isDecimal(currentChar)) {
                 if (isDecimal(currentChar) && !foundDecimal) {
@@ -46,11 +45,11 @@ Token* tokenize(char* input, int* tokArrLen) {
                     fprintf(stderr, "Invalid token at %d, too many decimal points.\n", pos);
                     exit(1);
                 }
-                found = true;
-                number = realloc(number, (len + 1) * sizeof(char));
-                number[len++] = currentChar;
+                number = realloc(number, ++len * sizeof(char));
+                number[len-1] = currentChar;
             }
             *input--;
+            number = realloc(number, ++len * sizeof(char));
             number[len-1] = 0;
 
             arr = realloc(arr, ++*tokArrLen * sizeof(Token));
