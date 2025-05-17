@@ -50,9 +50,7 @@ Token* tokenize(char* input, int* tokArrLen) {
                 number = realloc(number, (len + 1) * sizeof(char));
                 number[len++] = currentChar;
             }
-            if (!found) {
-                *input--;
-            }
+            *input--;
             number[len-1] = 0;
 
             arr = realloc(arr, ++*tokArrLen * sizeof(Token));
