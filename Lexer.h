@@ -116,6 +116,16 @@ void validate(Token* tokenArr, int* len) {
         }
 
         if (i > 0) {
+            if (tokenArr[i].type == NUMBER && tokenArr[i-1].type == SUBTRACT) {
+                tokenArr[i].val = -tokenArr[i].val;
+                if (i > 1 && tokenArr[i-2].type == NUMBER || tokenArr[i-2].type == RPAREN) tokenArr[i-1].type = ADD;
+                else {
+                    tokenArr[i-1] = tokenArr[i];
+                    tokenArr[i] = initToken(0);
+                    i--;
+                    cleanup(&tokenArr, len);
+                }
+            }
             if (tokenArr[i].type == NUMBER && tokenArr[i-1].type == NUMBER) {
                 fprintf(stderr, "Invalid token at %d, must not be a number.\n", i);
                 exit(1);

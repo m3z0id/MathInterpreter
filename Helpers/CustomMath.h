@@ -108,6 +108,12 @@ Token calculate(Token* arr, int* len) {
         *deepestRParen = initToken(0);
         cleanup(&arr, len);
         calculatePart(arr, len, deepestLParen, deepestRParen-2);
+        if (deepestLParen-1 >= arr && (deepestLParen-1)->type == SUBTRACT) {
+            *(deepestLParen-1) = initToken(0);
+            deepestLParen->val = -deepestLParen->val;
+            if (deepestLParen-2 >= arr && ((deepestLParen-2)->type == NUMBER || (deepestLParen-2)->type == RPAREN)) *(deepestLParen-1) = initToken(ADD);
+            else cleanup(&arr, len);
+        }
     }
     while (*len > 1) {
         calculatePart(arr, len, arr, arr+*len);

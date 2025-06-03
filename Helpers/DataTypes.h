@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <complex.h>
 #include "Helpers/AdditionalString.h"
 #define true 1
 #define false 0
@@ -65,6 +66,7 @@ typedef struct Token {
     enum TokenType type;
     int priority;
     double val;
+    int imaginary;
 } Token;
 
 void printTokenArray(Token* arr, int len) {
@@ -83,6 +85,7 @@ Token initToken(enum TokenType type) {
     token.type = type;
     token.priority = getPriority(type);
     token.val = 0;
+    token.imaginary = false;
 
     return token;
 }
