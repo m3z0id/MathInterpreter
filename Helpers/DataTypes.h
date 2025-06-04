@@ -66,7 +66,6 @@ typedef struct Token {
     enum TokenType type;
     int priority;
     double val;
-    int imaginary;
 } Token;
 
 void printTokenArray(Token* arr, int len) {
@@ -85,7 +84,6 @@ Token initToken(enum TokenType type) {
     token.type = type;
     token.priority = getPriority(type);
     token.val = 0;
-    token.imaginary = false;
 
     return token;
 }

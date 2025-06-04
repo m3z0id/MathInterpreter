@@ -59,8 +59,20 @@ void cleanup(Token** arr, int* len) {
     *len = writeIndex;
 }
 
-double nthRoot(double x, double n) {
-    return pow(x, 1.0 / n);
+double safePower(double base, double exponent) {
+    if (base < 0 && fmod(exponent, 1) != 0) {
+        fprintf(stderr, "Error: This interpreter doesn't support imaginary numbers.\n");
+        exit(1);
+    }
+    return pow(base, exponent);
+}
+
+double nthRoot(double number, double n) {
+    if (number < 0 && fmod(n, 2) != 1) {
+        fprintf(stderr, "Error: This interpreter doesn't support imaginary numbers.\n");
+        exit(1);
+    }
+    return (number < 0) ? -pow(-number, 1.0 / n) : pow(number, 1.0 / n);
 }
 
 void calculatePart(Token* arr, int* fullLen, Token* start, Token* end) {
@@ -88,7 +100,7 @@ void calculatePart(Token* arr, int* fullLen, Token* start, Token* end) {
             }
             result.val = fmod(val1->val, val2->val);
         }
-        else if (biggestPriority->type == FACTOR) result.val = pow(val1->val, val2->val);
+        else if (biggestPriority->type == FACTOR) result.val = safePower(val1->val, val2->val);
         else if (biggestPriority->type == ROOT) result.val = nthRoot(val2->val, val1->val);
 
         *biggestPriority = result;
