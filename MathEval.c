@@ -27,6 +27,13 @@ void handleExit(int sig) {
     exit(0);
 }
 
+void doCalc(char* buf, int* len, int* counter) {
+    Token* tokenArr = tokenize(buf, len);
+
+    validate(tokenArr, len);
+    fprintf(stdout, "%d. The result is %g\n", ++*counter, calculate(tokenArr, len).val);
+}
+
 int main(int argc, char* argv[]) {
     if (!(argc == 1 || argc == 3)) {
         fprintf(stderr, "Usage: %s -i <filename>\n", argv[0]);
@@ -49,30 +56,34 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    int counter = 0;
     while (buf != NULL) {
         int arrLen = 0;
-        char** multiple = splitUp(buf, &arrLen, ";");
 
-        for (int i = 0; i < arrLen; i++) {
-            int len = 0;
-            char* current = isStdin ? multiple[i] : buf;
-
-            Token* tokenArr = tokenize(current, &len);
-
-            validate(tokenArr, &len);
-            fprintf(stdout, "The result is %g\n", calculate(tokenArr, &len).val);
+        if (isStdin) {
+            char** multiple = splitUp(buf, &arrLen, ";");
+            for (int i = 0; i < arrLen; i++) {
+                int len = 0;
+                char* current = multiple[i];
+                doCalc(current, &len, &counter);
+                free(current);
+            }
+            free(multiple);
+            multiple = NULL;
+        } else {
+            doCalc(buf, &arrLen, &counter);
+            free(buf);
         }
-        free(multiple);
-        free(buf);
 
         if (isStdin) {
             buf = getInput();
+            counter = 0;
         } else {
             buf = readNextLine(file);
         }
     }
 
-    fclose(file);
+    if (!isStdin) fclose(file);
 
     return 0;
 }

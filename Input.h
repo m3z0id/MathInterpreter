@@ -39,6 +39,21 @@ long goToNextNlOrDelim(FILE *file) {
     return ftell(file);
 }
 
+int getExpressionCount(FILE* file) {
+    long origPos = ftell(file);
+
+    fseek(file, 0, SEEK_END);
+    long end = ftell(file);
+
+    fseek(file, 0, SEEK_SET);
+    long count = 0;
+    while (goToNextNlOrDelim(file) != end) count++;
+
+    fseek(file, origPos, SEEK_SET);
+
+    return ++count;
+}
+
 char* readNextLine(FILE* file) {
     if (!file) {
         fprintf(stderr, "This file doesn't exist\n");
@@ -64,6 +79,7 @@ char* readNextLine(FILE* file) {
     fread(buf, sizeof(char), lineLen, file);
     buf[lineLen] = 0;
     buf[strcspn(buf, "\n")] = 0;
+    buf[strcspn(buf, ";")] = 0;
 
     return buf;
 }

@@ -6,7 +6,7 @@ Token* getDeepestLParen(Token* start, Token* end) {
     Token* result = NULL;
     int depth = 0;
     int maxDepth = 0;
-    for (Token* iter = start; iter <= end; iter++) {
+    for (Token* iter = start; iter < end; iter++) {
         if (iter->type == LPAREN) {
             depth++;
             if (maxDepth < depth) {
@@ -21,7 +21,7 @@ Token* getDeepestLParen(Token* start, Token* end) {
 }
 
 Token* getDeepestRParen(Token* start, Token* end) {
-    for (Token* iter = start; iter <= end; iter++) {
+    for (Token* iter = start; iter < end; iter++) {
         if (iter->type == RPAREN) return iter;
     }
     return NULL;
@@ -30,7 +30,7 @@ Token* getDeepestRParen(Token* start, Token* end) {
 Token* getBiggestPriority(Token* start, Token* end) {
     Token* result = NULL;
     int maxPriority = -1;
-    for (Token* iter = start; iter <= end; iter++) {
+    for (Token* iter = start; iter < end; iter++) {
         if (iter->type < ADD || iter->type > FACTOR) continue;
         if (iter->priority > maxPriority) {
             maxPriority = iter->priority;
@@ -45,14 +45,20 @@ void cleanup(Token** arr, int* len) {
 
     for (int i = 0; i < *len; i++) {
         if ((*arr)[i].type >= ADD && (*arr)[i].type <= NUMBER) {
-            (*arr)[writeIndex++] = (*arr)[i];
+            if (writeIndex < *len) {
+                (*arr)[writeIndex++] = (*arr)[i];
+            }
         }
     }
-
+    if (writeIndex == 0) {
+        free(*arr);
+        *arr = NULL;
+        *len = 0;
+        return;
+    }
     Token* newArr = realloc(*arr, writeIndex * sizeof(Token));
     if (!newArr) {
         fprintf(stderr, "Out of memory\n");
-        free(*arr);
         exit(1);
     }
     *arr = newArr;
@@ -107,8 +113,11 @@ void calculatePart(Token* arr, int* fullLen, Token* start, Token* end) {
         *val1 = initToken(0);
         *val2 = initToken(0);
 
+        int offset = val1 - arr;
         cleanup(&arr, fullLen);
-        end -= 2;
+
+        start = arr + offset;
+        end = arr + *fullLen;
     }
 }
 
@@ -119,12 +128,17 @@ Token calculate(Token* arr, int* len) {
         *deepestLParen = initToken(0);
         *deepestRParen = initToken(0);
         cleanup(&arr, len);
-        calculatePart(arr, len, deepestLParen, deepestRParen-2);
-        if (deepestLParen-1 >= arr && (deepestLParen-1)->type == SUBTRACT) {
-            *(deepestLParen-1) = initToken(0);
-            deepestLParen->val = -deepestLParen->val;
-            if (deepestLParen-2 >= arr && ((deepestLParen-2)->type == NUMBER || (deepestLParen-2)->type == RPAREN)) *(deepestLParen-1) = initToken(ADD);
-            else cleanup(&arr, len);
+
+        int lparenIdx = deepestLParen - arr;
+        int rparenIdx = deepestRParen - arr;
+        calculatePart(arr, len, arr + lparenIdx, arr + rparenIdx - 2);
+        if (lparenIdx - 1 >= 0 && (arr[lparenIdx - 1].type == SUBTRACT)) {
+            arr[lparenIdx - 1] = initToken(0);
+            arr[lparenIdx].val = -arr[lparenIdx].val;
+            if (lparenIdx - 2 >= 0 && (arr[lparenIdx - 2].type == NUMBER || arr[lparenIdx - 2].type == RPAREN))
+                arr[lparenIdx - 1] = initToken(ADD);
+            else
+                cleanup(&arr, len);
         }
     }
     while (*len > 1) {
